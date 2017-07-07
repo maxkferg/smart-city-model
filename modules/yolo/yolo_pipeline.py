@@ -1,16 +1,28 @@
+import os
+import cv2 as cv
 import numpy as np
 import tensorflow as tf
-import cv2
-from storage import db, VideoFrame
 from timeit import default_timer as timer
 import matplotlib.pyplot as plt
-from visualizations import *
+from ..environment import *
+from ..storage.models import FrameModel
+
+
+def abspath(relpath, ensure_exists=False):
+    """Return the absolute path relative to this file"""
+    root = os.path.dirname(__file__)
+    abspath = os.path.join(root,relpath)
+    if ensure_exists and not os.path.exists(abspath):
+        raise IOError("File does not exist: "+abspath)
+    return abspath
+
+
 
 class yolo_tf:
     w_img = 1280
     h_img = 720
 
-    weights_file = 'weights/YOLO_small.ckpt'
+    weights_file = abspath('weights/YOLO_small.ckpt')
     alpha = 0.1
     threshold = 0.3
     iou_threshold = 0.5
@@ -244,7 +256,7 @@ def vehicle_only_yolo(image,video_num,frame_num):
 
     # Store the bounding boxes
     for result in yolo.result_list:
-        frame = VideoFrame(video_num, frame_num, x=result[1], y=result[2], width=result[3], height=result[4])
+        frame = FrameModel(video_num, frame_num, x=result[1], y=result[2], width=result[3], height=result[4])
         db.store_frame(frame)
 
     # compute frame per second

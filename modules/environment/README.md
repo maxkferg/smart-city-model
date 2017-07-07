@@ -10,5 +10,11 @@ The virtual environment is made up of components in 3d Space
 * Lane
 * ect
 
+## Testing
+Draw the intersection
+```sh
+python3 visualization.py
+```
+
 ## License
 Copyright 2017, Max Ferguson

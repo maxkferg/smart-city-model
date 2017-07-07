@@ -3,3 +3,4 @@
 test/temp/*
 test/data/*
 test/frames/*
+*.ckpt

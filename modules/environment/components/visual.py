@@ -51,7 +51,6 @@ class Lane(Line):
     def draw(self,screen):
         polygon(screen, GUIDELINE_COLOR, self.corners, self.thickness)
 
-    
 
 
 class Centerline(Line):
@@ -66,5 +65,3 @@ class Laneline(Line):
 class Edgeline(Line):
     thickness = 2
 
-
-  

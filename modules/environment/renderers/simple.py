@@ -2,8 +2,7 @@ import sys
 import pygame
 from pygame.locals import *
 from pygame.color import THECOLORS
-from pygame.draw import polygon 
-from intersection import intersection
+from pygame.draw import polygon
 
 
 class Renderer():
@@ -31,12 +30,3 @@ class Renderer():
                 pygame.quit()
                 sys.exit()
         pygame.display.flip()
-
- 
-
-
-
-
-renderer = Renderer(intersection)
-while True:
-    renderer.draw()

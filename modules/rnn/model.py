@@ -96,17 +96,17 @@ if __name__=='__main__':
                     break
 
             universe.update()
-                
+
             screen.fill(universe.colour)
 
             history = np.roll(history, shift=-1, axis=0)
             history[-1,:] = get_state(universe)
             batch = history[None,:,:]
             predictions = model.predict(batch).reshape((-1,2))
-            
+
             for p in universe.particles:
                 pygame.draw.circle(screen, p.colour, (int(p.x), int(p.y)), p.size, 0)
-                
+
             time.sleep(0.1)
 
             # Plot the predictions

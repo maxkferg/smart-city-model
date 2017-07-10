@@ -1,0 +1,59 @@
+local:
+  image: "locations/auburn/images/intersection.png"
+  debug: "locations/auburn/images/intersection-debug.png"
+  scale_x: 0.5
+  scale_y: 2.0
+  points:
+    - name: "top left"
+      x: 60
+      y: 200
+    - name: "top right"
+      x: 500
+      y: 180
+    - name: "bottom right"
+      x: 1180
+      y: 420
+    - name: "bottom left"
+      x: 40
+      y: 720
+  markers:
+    - name: "test marker"
+      x: 190
+      y: 425
+      z: 0
+    - name: "test marker"
+      x: 310
+      y: 400
+      z: 0
+    - name: "test marker"
+      x: 430
+      y: 375
+      z: 0
+    - name: "right lane"
+      x: 1040
+      y: 370
+      z: 0
+
+
+global:
+  image: "locations/auburn/images/intersection-birdseye.png"
+  points:
+    - name: "bottom left"
+      x: 0
+      y: 600
+      z: 0
+    - name: "bottom right"
+      x: 600
+      y: 600
+      z: 0
+    - name: "top right"
+      x: 600
+      y: 0
+      z: 0
+    - name: "top left"
+      x: 0
+      y: 0
+      z: 0
+
+transformation:
+  file: "locations/auburn/transformation.json"

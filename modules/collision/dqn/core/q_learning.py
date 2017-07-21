@@ -4,6 +4,7 @@ import numpy as np
 import logging
 import time
 import sys
+import tensorflow as tf
 from gym import wrappers
 from collections import deque
 
@@ -38,6 +39,12 @@ class QN(object):
 
         # build model
         self.build()
+
+        # create tf session
+        self.sess = tf.Session()
+
+        # for saving networks weights
+        self.saver = tf.train.Saver()
 
 
     def build(self):
@@ -108,15 +115,15 @@ class QN(object):
         """
         Defines extra attributes for tensorboard
         """
-        self.avg_reward = -21.
-        self.max_reward = -21.
+        self.avg_reward = -5.
+        self.max_reward = -5.
         self.std_reward = 0
 
         self.avg_q = 0
         self.max_q = 0
         self.std_q = 0
 
-        self.eval_reward = -21.
+        self.eval_reward = -5.
 
 
     def update_averages(self, rewards, max_q_values, q_values, scores_eval):
@@ -233,7 +240,7 @@ class QN(object):
 
         # last words
         self.logger.info("- Training done.")
-        self.save()
+        self.save(t)
         scores_eval += [self.evaluate()]
         export_plot(scores_eval, "Scores", self.config.plot_output)
 
@@ -259,7 +266,7 @@ class QN(object):
 
         # occasionaly save the weights
         if (t % self.config.saving_freq == 0):
-            self.save()
+            self.save(t)
 
         return loss_eval, grad_eval
 

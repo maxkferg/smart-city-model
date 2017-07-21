@@ -32,4 +32,5 @@ if __name__ == '__main__':
 
     # train model
     model = NatureQN(env, config)
+    model.restore(config.model_output)
     model.run(exp_schedule, lr_schedule)

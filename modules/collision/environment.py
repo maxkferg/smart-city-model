@@ -1,3 +1,4 @@
+import math
 import time
 import random
 import pygame
@@ -37,13 +38,13 @@ class LearningEnvironment:
     num_particles = 4 # The actual number of particles
     num_actions = 3
     max_rotation = 0.6 # The maximum rotation per time step
-    history_length = 10 # The number of steps to save
+    history_length = 4 # The number of steps to save
 
     screen = None
     screen_width = 800
     screen_height = 800
 
-    def __init__(self, skip=4):
+    def __init__(self, skip=4, render=False):
         """
         @history: A vector where each row is a previous state
         """
@@ -89,11 +90,11 @@ class LearningEnvironment:
         """
         # Particle 1 can't turn as much
         if action==0:
-            self.universe.particles[0].rotate(-0.6)
+            self.universe.particles[0].rotate(-0.1)
         if action==1:
             self.universe.particles[0].rotate(0.0)
         if action==2:
-            self.universe.particles[0].rotate(0.6)
+            self.universe.particles[0].rotate(0.1)
 
         collisions = self.universe.update()
         state = self.get_current_state()
@@ -110,7 +111,7 @@ class LearningEnvironment:
     def reset(self):
         """ """
         # Step the environment a few times to move the particles
-        for particle in self.universe.particles[1:]:
+        for particle in self.universe.particles:
             particle.respawn(self.screen_width, self.screen_height)
 
         self.universe.particles[0].name = "primary"
@@ -171,7 +172,7 @@ class LearningEnvironment:
         for i,particle in enumerate(self.universe.particles):
             x = particle.x / self.universe.width
             y = particle.y / self.universe.height
-            a = particle.angle
+            a = particle.angle / (2 * math.pi)
             state[i,:] = (x, y, a)
         return state.flatten()
 

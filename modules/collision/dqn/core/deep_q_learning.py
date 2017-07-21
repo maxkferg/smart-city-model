@@ -96,9 +96,6 @@ class DQN(QN):
         Assumes the graph has been constructed
         Creates a tf Session and run initializer of variables
         """
-        # create tf session
-        self.sess = tf.Session()
-
         # tensorboard stuff
         self.add_summary()
 
@@ -108,9 +105,6 @@ class DQN(QN):
 
         # synchronise q and target_q networks
         self.sess.run(self.update_target_op)
-
-        # for saving networks weights
-        self.saver = tf.train.Saver()
 
 
     def add_summary(self):
@@ -150,14 +144,35 @@ class DQN(QN):
 
 
 
-    def save(self):
+    def save(self,step):
         """
         Saves session
         """
         if not os.path.exists(self.config.model_output):
             os.makedirs(self.config.model_output)
 
-        self.saver.save(self.sess, self.config.model_output)
+        filepath = os.path.join(self.config.model_output, self.config.model_name)
+        savepath = self.saver.save(self.sess, filepath, global_step=step)
+        print("Saved model to ", savepath)
+
+
+
+    def restore(self,path):
+        """
+        Saves session
+        """
+        if not os.path.exists(path):
+            print("No such directory", path)
+
+        filepath = self.config.model_output
+        savepath = tf.train.latest_checkpoint(filepath)
+
+        if savepath:
+            self.saver.restore(self.sess, savepath)
+            print("Restored model from", savepath)
+        else:
+            print("Unable to find checkpoint at",filepath)
+
 
 
     def get_best_action(self, state):

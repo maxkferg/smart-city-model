@@ -11,10 +11,12 @@ def cart2pol(x, y):
     phi = np.arctan2(y, x)
     return (phi, rho)
 
+
 def pol2cart(phi, rho):
     x = rho * np.cos(phi)
     y = rho * np.sin(phi)
     return (x, y)
+
 
 def addVectors(p1, p2):
     """ Returns the sum of two vectors """
@@ -28,6 +30,16 @@ def addVectors(p1, p2):
     length = math.hypot(x, y)
 
     return (angle, length)
+
+
+def normalizeAngle(angle):
+    """Ensure that the angle is on a 0 to 2pi scale"""
+    if angle<0:
+        angle = angle + 2*math.pi
+    elif angle > 2*math.pi:
+        angle = angle % (2*math.pi)
+    return angle
+
 
 
 def combine(p1, p2):
@@ -84,7 +96,7 @@ class Particle:
 
 
     def rotate(self, angle):
-        """ Rotate the particle by a certain angle """
+        """ Rotate the particle by a certain angle"""
         self.angle += angle
 
 
@@ -198,6 +210,8 @@ class Environment:
             for particle2 in self.particles[i:]:
                 for f in self.particle_functions2:
                     f(particle, particle2)
+            # Fix all the angles
+            particle.angle = normalizeAngle(particle.angle)
 
         for spring in self.springs:
             spring.update()

@@ -153,7 +153,7 @@ class DQN(QN):
 
         filepath = os.path.join(self.config.model_output, self.config.model_name)
         savepath = self.saver.save(self.sess, filepath, global_step=step)
-        print("Saved model to ", savepath)
+        print("\nSaved model to ", savepath)
 
 
 

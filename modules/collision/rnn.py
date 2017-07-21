@@ -1,5 +1,6 @@
 import time
 import pygame
+import pygame.gfxdraw
 import numpy as np
 from keras.models import Sequential
 from keras.layers import Input, LSTM, Dense
@@ -22,10 +23,13 @@ output_sequence_len = 1 # Only predict the next value
 batch_size = 100*128 # Train with batches of 128
 
 model = Sequential()
-model.add(LSTM(
-    units=hidden_layers,
-    input_shape=(input_sequence_len,input_shape),
-))
+model.add(
+    LSTM(
+        units=hidden_layers,
+        input_shape=(input_sequence_len,input_shape),
+    )
+)
+
 model.add(Dense(output_shape))
 model.compile('adam', 'mse')  # Or categorical_crossentropy
 
@@ -54,10 +58,10 @@ if __name__=='__main__':
         universe = particles.Environment((width, height))
         universe.colour = (255,255,255)
         universe.addFunctions(['move', 'bounce', 'brownian', 'collide', 'drag'])
-        universe.mass_of_air = 0.02
+        universe.mass_of_air = 0.001
 
         for p in range(4):
-            universe.addParticles(mass=100, size=16, speed=2, elasticity=1)
+            universe.addParticles(mass=100, size=32, speed=20, elasticity=1)
 
         # Run the simulation for a few steps to build a history
         history = np.zeros((input_sequence_len, input_shape))
@@ -105,7 +109,8 @@ if __name__=='__main__':
             predictions = model.predict(batch).reshape((-1,2))
 
             for p in universe.particles:
-                pygame.draw.circle(screen, p.colour, (int(p.x), int(p.y)), p.size, 0)
+                pygame.gfxdraw.filled_circle(screen, int(p.x), int(p.y), p.size, p.colour)
+                pygame.gfxdraw.aacircle(     screen, int(p.x), int(p.y), p.size, p.colour)
 
             time.sleep(0.1)
 
@@ -115,7 +120,7 @@ if __name__=='__main__':
                     particle = universe.particles[row]
                 x = int(universe.width * predictions[row,0])
                 y = int(universe.height * predictions[row,1])
-                pygame.draw.circle(screen, particle.colour, (x,y), int(1.5*p.size), 2)
+                pygame.gfxdraw.aacircle(screen, x, y, int(1.5*p.size), particle.colour)
 
             # Compare the prediction to the actual event
             for row in range(max_objects):
@@ -123,7 +128,9 @@ if __name__=='__main__':
                     particle = universe.particles[row]
                 x = int(universe.width * last_predictions[row,0])
                 y = int(universe.height * last_predictions[row,1])
-                pygame.draw.circle(screen, (0,0,0), (x,y), int(0.2*p.size), 0)
+                black = (0,0,0)
+                pygame.gfxdraw.filled_circle(screen, x, y, int(0.2*p.size), black)
+                pygame.gfxdraw.aacircle(     screen, x, y, int(0.2*p.size), black)
 
             last_predictions = predictions
 

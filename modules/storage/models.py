@@ -27,9 +27,9 @@ class VideoModel(Model):
     def create(cls,camera,created,videopath):
         """Create a new object using a local filepath"""
         timestamp = str(int(created.timestamp()))
-        filename = "{0}-{1}.mpeg".format(camera,timestamp)
+        filename = "{0}-{1}.mp4".format(camera,timestamp)
         bucket.upload_file(videopath, Key=filename)
-        return cls(id=timestamp,camera=camera,timestamp=created,filename=filename)
+        return cls(id=timestamp, camera=camera, timestamp=created, filename=filename)
 
     def download(self):
         """Download the video file"""
@@ -47,10 +47,9 @@ class FrameModel(Model):
     class Meta:
         table_name = "intersection-frames"
 
-    id = UnicodeAttribute(hash_key=True)
+    video_id = UnicodeAttribute() # Partition key
+    frame_number = NumberAttribute() # Sort key
     camera = UnicodeAttribute()
-    video_id = UnicodeAttribute()
-    frame_number = NumberAttribute()
     objects_train = ListAttribute()
     objects_test = ListAttribute()
     n_objects_train = NumberAttribute()

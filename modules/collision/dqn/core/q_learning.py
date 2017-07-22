@@ -46,6 +46,9 @@ class QN(object):
         # for saving networks weights
         self.saver = tf.train.Saver()
 
+        # initialize variables
+        self.initialize()
+
 
     def build(self):
         """
@@ -342,8 +345,6 @@ class QN(object):
             exp_schedule: exploration strategy for epsilon
             lr_schedule: schedule for learning rate
         """
-        # initialize
-        self.initialize()
 
         # record one game at the beginning
         if self.config.record:

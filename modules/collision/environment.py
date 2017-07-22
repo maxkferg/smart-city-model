@@ -102,7 +102,7 @@ class LearningEnvironment:
         self.history[-1,:] = state
         self.current_step += 1
 
-        reward = -collisions - np.sum(abs(action))/self.max_steps
+        reward = -collisions
         done = self.current_step >= self.max_steps
         info = {'step': self.current_step}
         return (self.history, reward, done, info)
@@ -146,7 +146,7 @@ class LearningEnvironment:
                 break
 
         pygame.display.flip()
-        time.sleep(0.001)
+        time.sleep(0.1)
 
 
     def draw(self,scale=10):

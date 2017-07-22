@@ -72,7 +72,7 @@ python3 tf_convert_data.py \
 DATASET_NAME=database
 TRAIN_DIR=./modules/ssd/logs/ssd_300_database
 DATASET_DIR=/home/ubuntu/Data
-CHECKPOINT_PATH=./modules/ssd/checkpoints/ssd_model.ckpt
+CHECKPOINT_PATH=./modules/vision/checkpoints/ssd_model.ckpt
 
 python3 train.py \
     --train_dir=${TRAIN_DIR} \

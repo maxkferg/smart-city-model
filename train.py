@@ -11,7 +11,7 @@ print("Using numpys version ==", np.__version__)
 print("Using tensorflow version ==", tf.__version__)
 print("Running module tests")
 
-from modules.ssd.train_ssd_network import train
+from modules.vision.train_ssd_network import train
 train()
 
 

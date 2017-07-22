@@ -128,12 +128,13 @@ def normalize_bounding_boxes(bboxes, image_shape):
     h = image_shape[0]
     w = image_shape[1]
     output = []
+    clip = lambda x: min(max(x,0),1)
     for bbox in bboxes:
         output.append([
-            (bbox['x']) / w,
-            (bbox['y']) / h,
-            (bbox['x']+bbox['width']) / w,
-            (bbox['y']+bbox['height']) / h
+            clip((bbox['x']-bbox['width']/2) / w),
+            clip((bbox['y']-bbox['height']/2)/ h),
+            clip((bbox['x']+bbox['width']/2) / w),
+            clip((bbox['y']+bbox['height']/2)/ h)
         ])
     return output
 

@@ -3,10 +3,8 @@
 *.pyc
 *.ckpt
 
-
 test/temp/*
 test/data/*
 test/frames/*
 videos/*
-modules/collision/results/
 modules/collision/models/

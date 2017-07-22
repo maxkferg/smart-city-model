@@ -1,12 +1,17 @@
 
-
 *.pyc
 *.ckpt
+*.SUNet
+*.mp4
+*.jpg
+*.png
+
 
 test/temp/*
 test/data/*
 test/frames/*
 videos/*
+modules/vision/logs/
 modules/collision/models/
+modules/vision/checkpoints/ssd_300_vgg.ckpt.zip
 
-*.SUNet

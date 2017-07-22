@@ -8,3 +8,5 @@ test/data/*
 test/frames/*
 videos/*
 modules/collision/models/
+
+*.SUNet

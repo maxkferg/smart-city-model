@@ -67,18 +67,7 @@ class NatureQN(Linear):
             # First linear layer
             linear1 = layers.fully_connected(
                 inputs=hidden,
-                num_outputs=512,
-                activation_fn=tf.nn.relu,
-                weights_initializer=xavier,
-                biases_initializer=zeros,
-                trainable=True,
-                reuse=reuse,
-            )
-
-            # Second linear layer
-            linear2 = layers.fully_connected(
-                inputs=hidden,
-                num_outputs=512,
+                num_outputs=256,
                 activation_fn=tf.nn.relu,
                 weights_initializer=xavier,
                 biases_initializer=zeros,
@@ -87,8 +76,8 @@ class NatureQN(Linear):
             )
 
             # Third linear layer
-            linear3 = layers.fully_connected(
-                inputs=hidden,
+            linear2 = layers.fully_connected(
+                inputs=linear1,
                 num_outputs=256,
                 activation_fn=tf.nn.relu,
                 weights_initializer=xavier,
@@ -98,8 +87,8 @@ class NatureQN(Linear):
             )
 
             # Fourth linear layer
-            linear4 = layers.fully_connected(
-                inputs=hidden,
+            linear3 = layers.fully_connected(
+                inputs=linear2,
                 num_outputs=128,
                 activation_fn=tf.nn.relu,
                 weights_initializer=xavier,
@@ -110,7 +99,7 @@ class NatureQN(Linear):
 
             # Output layer
             out = layers.fully_connected(
-                inputs=linear4,
+                inputs=linear3,
                 num_outputs=num_actions,
                 activation_fn=None, # linear
                 weights_initializer=xavier,

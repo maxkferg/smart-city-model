@@ -50,7 +50,8 @@ python3 train.py \
     --save_interval_secs=60 \
     --weight_decay=0.0005 \
     --optimizer=adam \
-    --learning_rate=0.000001 \
+    --learning_rate=0.00005 \
+    --learning_rate_decay_factor=0.999
     --batch_size=32 \
     --checkpoint_path=${CHECKPOINT_PATH} \
     --checkpoint_exclude_scopes=ssd_300_vgg/block4_box,ssd_300_vgg/block7_box,ssd_300_vgg/block8_box,ssd_300_vgg/block9_box,ssd_300_vgg/block10_box,ssd_300_vgg/block11_box \

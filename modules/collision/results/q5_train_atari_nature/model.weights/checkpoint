@@ -1,6 +1,2 @@
-model_checkpoint_path: "collision-7250000"
-all_model_checkpoint_paths: "collision-6250000"
-all_model_checkpoint_paths: "collision-6500000"
-all_model_checkpoint_paths: "collision-6750000"
-all_model_checkpoint_paths: "collision-7000000"
-all_model_checkpoint_paths: "collision-7250000"
+model_checkpoint_path: "collision-250000"
+all_model_checkpoint_paths: "collision-250000"

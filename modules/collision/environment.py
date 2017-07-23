@@ -1,3 +1,4 @@
+import sys
 import math
 import time
 import random
@@ -32,13 +33,14 @@ class LearningEnvironment:
     """
     Environment that an algorithm can play with
     """
-    dimensions = 3 # The number of state dimensions (x,y,angle)
+    dimensions = 4 # The number of state dimensions (x,y,angle,speed)
     max_steps = 1000
     max_particles = 4 # The maximum number of objects we can track
     num_particles = 4 # The actual number of particles
-    num_actions = 3
+    num_actions = 4
     max_rotation = 0.6 # The maximum rotation per time step
     history_length = 4 # The number of steps to save
+    human_control = False
 
     screen = None
     screen_width = 800
@@ -59,7 +61,7 @@ class LearningEnvironment:
         self.universe = particles.Environment((self.screen_width, self.screen_height))
         self.universe.colour = (255,255,255)
         self.universe.addFunctions(['move', 'bounce', 'brownian', 'collide', 'drag'])
-        self.universe.mass_of_air = 0.001
+        self.universe.mass_of_air = 0.002
 
         for p in range(self.num_particles):
             self.universe.addParticles(mass=100, size=50, speed=20, elasticity=1)
@@ -73,8 +75,11 @@ class LearningEnvironment:
         Step the environment forward
         Return (observation, reward, done, info)
         """
-        # Skip forward a few frames
+        if self.human_control:
+            action = self.control_loop()
+
         rewards = 0
+        # Skip forward a few frames
         for i in range(self.skip):
             state, reward, done, info = self._step(action)
             rewards += reward
@@ -89,12 +94,9 @@ class LearningEnvironment:
         Return (observation, reward, done, info)
         """
         # Particle 1 can't turn as much
-        if action==0:
-            self.universe.particles[0].rotate(-0.1)
-        if action==1:
-            self.universe.particles[0].rotate(0.0)
-        if action==2:
-            self.universe.particles[0].rotate(0.1)
+        accel = 0.5
+        angle = (2*math.pi)*action/4
+        self.universe.particles[0].accelerate((angle, accel))
 
         collisions = self.universe.update()
         state = self.get_current_state()
@@ -134,6 +136,12 @@ class LearningEnvironment:
             self.screen = pygame.display.set_mode((self.screen_width, self.screen_height))
             pygame.display.set_caption('Bouncing Objects')
 
+        # Make sure we catch quit events
+        if not self.human_control:
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    sys.exit()
+
         # Clear the screen
         self.screen.fill(self.universe.colour)
 
@@ -141,12 +149,38 @@ class LearningEnvironment:
             pygame.gfxdraw.filled_circle(self.screen, int(p.x), int(p.y), p.size, p.colour)
             pygame.gfxdraw.aacircle(     self.screen, int(p.x), int(p.y), p.size, p.colour)
 
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                break
-
+        # Draw the primary particle direction
+        p = self.universe.particles[0]
+        dx, dy = p.getSpeedVector()
+        pygame.gfxdraw.line(self.screen, int(p.x), int(p.y), int(p.x+10*dx), int(p.y+10*dy), (0,0,0))
         pygame.display.flip()
-        time.sleep(0.1)
+
+
+
+    def control_loop(self):
+        """
+        Return a user selected action
+        """
+        if not self.screen:
+            self.render()
+
+        action = None
+
+        while action is None:
+            events = pygame.event.get()
+            for event in events:
+                if event.type == pygame.QUIT:
+                    sys.exit()
+                if event.type == pygame.KEYDOWN:
+                    if event.key == pygame.K_w:
+                        action = 0
+                    if event.key == pygame.K_d:
+                        action = 1
+                    if event.key == pygame.K_s:
+                        action = 2
+                    if event.key == pygame.K_a:
+                        action = 3
+        return action
 
 
     def draw(self,scale=10):
@@ -168,12 +202,13 @@ class LearningEnvironment:
         """
         Return a representation of the simulation state
         """
-        state = np.zeros((self.max_particles, 3))
+        state = np.zeros((self.max_particles, self.dimensions))
         for i,particle in enumerate(self.universe.particles):
             x = particle.x / self.universe.width
             y = particle.y / self.universe.height
             a = particle.angle / (2 * math.pi)
-            state[i,:] = (x, y, a)
+            v = particle.speed / 10
+            state[i,:] = (x, y, a, v)
         return state.flatten()
 
 

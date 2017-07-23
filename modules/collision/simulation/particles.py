@@ -13,8 +13,8 @@ def cart2pol(x, y):
 
 
 def pol2cart(phi, rho):
-    x = rho * np.cos(phi)
-    y = rho * np.sin(phi)
+    x = rho * np.sin(phi)
+    y = -rho * np.cos(phi)
     return (x, y)
 
 
@@ -85,6 +85,10 @@ class Particle:
         self.x += math.sin(self.angle) * self.speed
         self.y -= math.cos(self.angle) * self.speed
 
+    def getSpeedVector(self):
+        """Return the speed vector in cartesion coordinates"""
+        dx, dy = pol2cart(self.angle, self.speed)
+        return dx, dy
 
     def experienceDrag(self):
         self.speed *= self.drag
@@ -108,7 +112,8 @@ class Particle:
         #polar = cart2pol(vector[0],vector[1])
         #self.accelerate(polar)
         #self.noise = vector / np.linalg.norm(vector)
-        self.speed = 10
+        if self.name!="primary":
+            self.speed = 10
 
     def attract(self, other):
         """" Change velocity based on gravatational attraction between two particle"""

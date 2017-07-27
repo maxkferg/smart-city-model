@@ -65,7 +65,6 @@ save_name = 'oracle'
 total_epochs = 5000
 epoch_length = 1000
 enqueue_threads = 4
-enqueue_duplicates = 3
 
 
 
@@ -131,13 +130,12 @@ with tf.Session() as sess:
             while not coord.should_stop():
                 state, reward = environment_buffer.fetch()
                 # Feed in all the values the queue
-                for i in range(enqueue_duplicates):
-                    sess.run(enqueue_op, feed_dict={
-                        sources_placeholder: state[:pre_steps, :],
-                        targets_placeholder: state[pre_steps:, :],
-                        sources_length_placeholder: pre_steps,
-                        targets_length_placeholder: post_steps
-                    })
+                sess.run(enqueue_op, feed_dict={
+                    sources_placeholder: state[:pre_steps, :],
+                    targets_placeholder: state[pre_steps:, :],
+                    sources_length_placeholder: pre_steps,
+                    targets_length_placeholder: post_steps
+                })
 
     # Start queuing new samples
     for i in range(enqueue_threads):

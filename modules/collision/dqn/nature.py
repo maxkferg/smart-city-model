@@ -5,7 +5,9 @@ from .utils.general import get_logger
 from .utils.test_env import EnvTest
 from .schedule import LinearExploration, LinearSchedule
 from .linear import Linear
+from .oracle import OracleNetwork
 from .configs.nature import config
+
 
 
 def prod(values):

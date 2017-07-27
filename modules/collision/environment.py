@@ -15,7 +15,7 @@ from skimage.draw import circle
 class ObservationSpace:
 
     def __init__(self, history_length, state_size):
-        self.shape = (history_length, state_size)
+        self.shape = (state_size,)
 
 
 class ActionSpace:
@@ -39,7 +39,7 @@ class LearningEnvironment:
     num_particles = 4 # The actual number of particles
     num_actions = 4
     max_rotation = 0.6 # The maximum rotation per time step
-    history_length = 4 # The number of steps to save
+    history_length = 1 # The number of steps to save
     human_control = False
 
     screen = None
@@ -78,21 +78,6 @@ class LearningEnvironment:
         if self.human_control:
             action = self.control_loop()
 
-        rewards = 0
-        # Skip forward a few frames
-        for i in range(self.skip):
-            state, reward, done, info = self._step(action)
-            rewards += reward
-            if done:
-                break
-        return state, reward, done, info
-
-
-    def _step(self,action):
-        """
-        Step the environment forward
-        Return (observation, reward, done, info)
-        """
         # Particle 1 can't turn as much
         accel = 0.5
         angle = (2*math.pi)*action/4
@@ -100,14 +85,12 @@ class LearningEnvironment:
 
         collisions = self.universe.update()
         state = self.get_current_state()
-        self.history = np.roll(self.history, shift=-1, axis=0)
-        self.history[-1,:] = state
         self.current_step += 1
 
         reward = -collisions
         done = self.current_step >= self.max_steps
         info = {'step': self.current_step}
-        return (self.history, reward, done, info)
+        return (state, reward, done, info)
 
 
     def reset(self):
@@ -119,12 +102,35 @@ class LearningEnvironment:
         self.universe.particles[0].name = "primary"
         self.universe.particles[0].colour = (0,255,0)
 
-        for i in range(self.history_length):
-            action = self.action_space.sample()
-            self.step(action)
+        action = self.action_space.sample()
+        state = self.step(action)
 
         self.current_step = 0
         return self.history
+
+
+    def init_screen(self):
+        """
+        Initialize the pygame screen
+        """
+        if not self.screen:
+            print('Initializing pygame screen')
+            self.screen = pygame.display.set_mode((self.screen_width, self.screen_height))
+            pygame.display.set_caption('Bouncing Objects')
+
+
+    def flip_screen(self):
+        """
+        Flip the pygame screen and catch events
+        """
+        # Push to the screen
+        pygame.display.flip()
+
+        # Make sure we catch quit events
+        if not self.human_control:
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    sys.exit()
 
 
     def render(self):
@@ -132,9 +138,7 @@ class LearningEnvironment:
         Render the environment
         """
         if not self.screen:
-            print('Initializing pygame screen')
-            self.screen = pygame.display.set_mode((self.screen_width, self.screen_height))
-            pygame.display.set_caption('Bouncing Objects')
+            self.init_screen()
 
         # Make sure we catch quit events
         if not self.human_control:
@@ -153,7 +157,8 @@ class LearningEnvironment:
         p = self.universe.particles[0]
         dx, dy = p.getSpeedVector()
         pygame.gfxdraw.line(self.screen, int(p.x), int(p.y), int(p.x+10*dx), int(p.y+10*dy), (0,0,0))
-        pygame.display.flip()
+        self.flip_screen()
+        time.sleep(0.1)
 
 
 
@@ -162,7 +167,7 @@ class LearningEnvironment:
         Return a user selected action
         """
         if not self.screen:
-            self.render()
+            self.init_screen()
 
         action = None
 
@@ -196,6 +201,16 @@ class LearningEnvironment:
             cc[cc>79] = 79; cc[cc<0] = 0
             img[rr, cc] = 1
         return img
+
+    def draw_circle(self, x, y, r, color, filled=False):
+        """Draw circle on the screen"""
+        if not self.screen:
+            self.init_screen()
+
+        if filled:
+            pygame.gfxdraw.filled_circle(self.screen, int(x), int(y), r, color)
+        pygame.gfxdraw.aacircle(self.screen, int(x), int(y), r, color)
+
 
 
     def get_current_state(self):

@@ -1,7 +1,7 @@
 import numpy as np
 import math, random
 import matplotlib
-from pylab import get_cmap
+#from pylab import get_cmap
 from matplotlib.colors import ColorConverter
 
 
@@ -55,6 +55,7 @@ def combine(p1, p2):
 
 def getColor():
     """Return a random color from Matplotlib"""
+    return (3,4,5)
     converter = ColorConverter()
     colors = get_cmap("Set1").colors
     color = random.choice(colors)

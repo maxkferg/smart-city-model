@@ -62,8 +62,8 @@ learning_rate = 0.01
 save_directory = 'results/collision'
 save_name = 'oracle'
 
-total_epochs = 1000
-epoch_length = 50
+total_epochs = 5000
+epoch_length = 1000
 enqueue_threads = 4
 
 
@@ -159,7 +159,7 @@ with tf.Session() as sess:
 
         # Draw the result
         sources_batch, targets_batch, outputs_batch = model.predict(sess=sess)
-        draw(environment, sources_batch, targets_batch, outputs_batch)
+        #draw(environment, sources_batch, targets_batch, outputs_batch)
 
         # Save to a checkpoint
         learning_rate = 0.95*learning_rate + 0.0001

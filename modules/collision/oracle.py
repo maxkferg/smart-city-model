@@ -1,77 +1,30 @@
 import time
 import random
+import threading
 import numpy as np
 import tensorflow as tf
 from ddpg import DDPG
 from tqdm import tqdm
 from dqn.oracle import OracleNetwork
+from tfmodels.buffers import HistoryBuffer
 from environment import LearningEnvironment
 
 
-PATH = 'models'
-EPISODES = 1000*1000
-BUFFER_LENGTH = 1000
 
 
-class StateBuffer():
-
-    def __init__(self, batch_size, buffer_length, state_size):
-        self.total_steps = pre_steps+post_steps
-        self.buffer_length = buffer_length
-        self.states = np.zeros((batch_size, buffer_length, state_size))
-        self.rewards = np.zeros((batch_size, buffer_length))
-
-    def add(self,states,rewards):
-        """Add a batch of rewards/states to the buffer"""
-        self.rewards = np.roll(self.rewards, shift=-1, axis=1)
-        self.states = np.roll(self.states, shift=-1, axis=1)
-        self.states[:,-1,:] = states
-        self.rewards[:,-1] = rewards
-
-    def get_random_sample(self, n_timesteps):
-        """
-        Return a random (state,reward) sample
-        The sample size will be [batch_size, n_timesteps, state_size]
-        """
-        start_index = random.randint(0, self.buffer_length-n_timesteps)
-        last_index = start_index + n_timesteps
-        states = self.states[:, start_index:last_index, :]
-        rewards = self.rewards[:, start_index:last_index, None]
-        return states, rewards
-
-
-
-class EnvironmentBuffer(StateBuffer):
-
-    def __init__(self, batch, *args, **kwargs):
-        super().__init__(batch, *args, **kwargs)
-        self.envs = [LearningEnvironment() for _ in range(batch)]
-
-    def step(self):
-        actions = [e.action_space.sample() for e in self.envs]
-        results = [env.step(a) for env,a in zip(self.envs, actions)]
-        states = [result[0] for result in results]
-        rewards = [result[1] for result in results]
-        self.add(states, rewards)
-        #self.envs[0].render()
-
-
-
-def draw(buff, sources_batch, targets_batch, outputs_batch):
+def draw(environment, sources_batch, targets_batch, outputs_batch):
     """Render a test attempt"""
 
-    ENV = 0
-
     # Setup the screen
-    environment = buff.envs[ENV]
+    sample_id = 0
     environment.init_screen()
     environment.screen.fill(environment.universe.colour)
 
     # Print the initial positions
     for timestep in range(sources_batch.shape[1]):
         for particle in range(0, sources_batch.shape[2], 4):
-            x = sources_batch[ENV, timestep, particle]
-            y = sources_batch[ENV, timestep, particle+1]
+            x = sources_batch[sample_id, timestep, particle]
+            y = sources_batch[sample_id, timestep, particle+1]
             x *= environment.screen_width
             y *= environment.screen_height
             environment.draw_circle(x, y, 5, (0,0,10*particle), filled=True)
@@ -81,20 +34,21 @@ def draw(buff, sources_batch, targets_batch, outputs_batch):
     for timestep in range(targets_batch.shape[1]):
         for particle in range(0, targets_batch.shape[2], 4):
             # Draw the actual target positions
-            x = targets_batch[ENV, timestep, particle]
-            y = targets_batch[ENV, timestep, particle+1]
+            x = targets_batch[sample_id, timestep, particle]
+            y = targets_batch[sample_id, timestep, particle+1]
             x *= environment.screen_width
             y *= environment.screen_height
             environment.draw_circle(x, y, 5, (0,0,10*particle))
             # Draw the predicted target positions
-            x = outputs_batch[ENV, timestep, particle]
-            y = outputs_batch[ENV, timestep, particle+1]
+            x = outputs_batch[sample_id, timestep, particle]
+            y = outputs_batch[sample_id, timestep, particle+1]
             x *= environment.screen_width
             y *= environment.screen_height
             environment.draw_circle(x, y, 5, (255,0,10*particle))
         # Draw on the screen
         environment.flip_screen()
         time.sleep(0.05)
+
 
 
 
@@ -108,79 +62,109 @@ learning_rate = 0.01
 save_directory = 'results/collision'
 save_name = 'oracle'
 
-
-if __name__=='__main__':
-
-    state_size = LearningEnvironment().observation_space.shape[0]
-
-    model = OracleNetwork(
-        rnn_size=256,
-        num_layers=3,
-        num_features=state_size
-    )
-
-    init = tf.global_variables_initializer()
-    buff = EnvironmentBuffer(batch_size, BUFFER_LENGTH, state_size)
-
-    print("Populating buffer")
-    for timestep in tqdm(range(BUFFER_LENGTH)):
-        buff.step()
-
-    # Train
-    with tf.Session() as sess:
-        sess.run(init)
-        model.restore(sess, save_directory, save_name)
-
-        for episode in range(EPISODES):
-            # Collect some new samples
-            state_batch, rewards_batch = buff.get_random_sample(total_steps)
-            sources_batch = state_batch[:,:pre_steps,:]
-            targets_batch = state_batch[:,pre_steps:,:]
-            rewards_batch = rewards_batch[:,pre_steps:,:]
-            sources_length = batch_size*[sources_batch.shape[1]]
-            targets_length = batch_size*[targets_batch.shape[1]]
-
-            # Add a new sample
-            buff.step()
-
-            # Train on the buffer
-            model.train(
-                sess=sess,
-                sources_batch=sources_batch,
-                targets_batch=targets_batch,
-                learning_rate=learning_rate,
-                sources_lengths=sources_length,
-                targets_lengths=targets_length
-            )
-
-            if episode%100==0:
-                # Evaluate on this dataset
-                tloss, eloss = model.evaluate(
-                    sess=sess,
-                    sources_batch=sources_batch,
-                    targets_batch=targets_batch,
-                    learning_rate=learning_rate,
-                    sources_lengths=sources_length,
-                    targets_lengths=targets_length
-                )
-                print('Episode {0}, Train Loss {1:.4f}, Eval Loss {2:.4f}'.format(episode,tloss,eloss))
-
-            if episode%100==0:
-                outputs_batch = model.predict(
-                    sess=sess,
-                    sources_batch=sources_batch,
-                    sources_lengths=sources_length,
-                    targets_lengths=targets_length
-                )
-                draw(buff, sources_batch, targets_batch, outputs_batch)
-
-            if episode and episode%5000==0:
-                learning_rate = 0.95*learning_rate + 0.0001
-                print("New learning rate: %.5f"%learning_rate)
-                model.save(sess, save_directory, save_name, episode)
+total_epochs = 1000
+epoch_length = 50
+enqueue_threads = 4
 
 
 
+# Define the environment and history buffer
+environment = LearningEnvironment()
+state_size = environment.observation_space.shape[0]
+
+# define shapes
+sources_shape = [pre_steps, state_size]
+targets_shape = [post_steps, state_size]
+
+# Define the palceholder we use for feeding data into the queue
+sources_placeholder = tf.placeholder(tf.float32, sources_shape, name="sources_placeholder")
+targets_placeholder = tf.placeholder(tf.float32, targets_shape, name="targets_placeholder")
+sources_length_placeholder = tf.placeholder(tf.int32, [], name="sources_length_placeholder")
+targets_length_placeholder = tf.placeholder(tf.int32, [], name="targets_length_placeholder")
 
 
+experience = tf.RandomShuffleQueue(capacity=200*batch_size,
+                                   min_after_dequeue=100*batch_size,
+                                   dtypes=[tf.float32, tf.float32, tf.int32, tf.int32],
+                                   shapes=[sources_shape, targets_shape, [], []],
+                                   names=["sources", "targets", "sources_length", "targets_length"],
+                                   name='experience_replay')
+
+# Define the queue ops
+enqueue_op = experience.enqueue({
+    "sources": sources_placeholder,
+    "targets": targets_placeholder,
+    "sources_length": sources_length_placeholder,
+    "targets_length": targets_length_placeholder
+})
+
+deque_single_op = experience.dequeue()
+deque_batch_op = experience.dequeue_many(batch_size)
+
+# Define the tensorflow model
+print("Building Oracle Network")
+model = OracleNetwork(
+    rnn_size=256,
+    num_layers=3,
+    num_features=state_size,
+    sources_batch=deque_batch_op["sources"],
+    targets_batch=deque_batch_op["targets"],
+    sources_lengths=deque_batch_op["sources_length"],
+    targets_lengths=deque_batch_op["targets_length"]
+)
+
+coord = tf.train.Coordinator()
+init_op = tf.global_variables_initializer()
+
+with tf.Session() as sess:
+    sess.run(init_op)
+    model.restore(sess, save_directory, save_name)
+
+    # Define a custom thread for running the enqueue op that grabs a new
+    # screen in a loop and feeds it to the placeholder.
+    # Each thread needs to fetch samples from its own environment to prevent race conditions
+    def enqueue_thread():
+        environment = LearningEnvironment()
+        environment_buffer = HistoryBuffer(environment, total_steps, state_size)
+        with coord.stop_on_exception():
+            while not coord.should_stop():
+                state, reward = environment_buffer.fetch()
+                # Feed in all the values the queue
+                sess.run(enqueue_op, feed_dict={
+                    sources_placeholder: state[:pre_steps, :],
+                    targets_placeholder: state[pre_steps:, :],
+                    sources_length_placeholder: pre_steps,
+                    targets_length_placeholder: post_steps
+                })
+
+    # Start queuing new samples
+    for i in range(enqueue_threads):
+        print("Starting enqueue operation %i"%i)
+        threading.Thread(target=enqueue_thread).start()
+
+    # Run the main training loop
+    for epoch in range(total_epochs):
+
+        # Train for an epoch
+        print("Training:")
+        progress = tqdm(range(epoch_length))
+        for _ in progress:
+            loss = model.train(sess=sess, learning_rate=learning_rate)
+            progress.set_postfix(loss=loss)
+
+        # Evaluate on this dataset
+        tloss, eloss = model.evaluate(sess=sess)
+        print('Evaluating Epoch {0}'.format(epoch))
+        print('Train Loss {1:.4f}, Eval Loss {2:.4f}'.format(epoch,tloss,eloss))
+
+        # Draw the result
+        sources_batch, targets_batch, outputs_batch = model.predict(sess=sess)
+        draw(environment, sources_batch, targets_batch, outputs_batch)
+
+        # Save to a checkpoint
+        learning_rate = 0.95*learning_rate + 0.0001
+        print("New learning rate: %.5f"%learning_rate)
+
+        if epoch%10==0:
+            model.save(sess, save_directory, save_name, epoch)
 

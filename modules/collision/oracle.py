@@ -11,14 +11,28 @@ from environment import LearningEnvironment
 
 
 
+def find_worst_sample(targets_batch, outputs_batch):
+    """Return the sample with the largest loss"""
+    losses = []
+    for sample_id in range(sources_batch.shape[0]):
+        loss = np.sum((targets_batch[sample_id]-outputs_batch[sample_id])**2)/2
+        losses.append(loss)
+    max_loss = np.max(losses)
+    sample_id = np.argmax(losses)
+    return sample_id, max_loss
+
 
 def draw(environment, sources_batch, targets_batch, outputs_batch):
     """Render a test attempt"""
 
+    # Select the worst example
+    sample_id, loss = find_worst_sample(targets_batch, outputs_batch)
+    print('Drawing sample {0} with loss {1:.3f}'.format(sample_id, loss))
+
     # Setup the screen
-    sample_id = 0
     environment.init_screen()
     environment.screen.fill(environment.universe.colour)
+    #environment.screen.set_caption('Sample %i'%sample_id)
 
     # Print the initial positions
     for timestep in range(sources_batch.shape[1]):
@@ -47,7 +61,8 @@ def draw(environment, sources_batch, targets_batch, outputs_batch):
             environment.draw_circle(x, y, 5, (255,0,10*particle))
         # Draw on the screen
         environment.flip_screen()
-        time.sleep(0.05)
+        time.sleep(0.1)
+    time.sleep(2)
 
 
 
@@ -59,8 +74,10 @@ pre_steps = 3  # Use the most recent three steps
 post_steps = 5 # Predict 5 steps into the future
 total_steps = pre_steps + post_steps
 learning_rate = 0.01
+logs_directory = 'results/logs'
 save_directory = 'results/collision'
 save_name = 'oracle'
+summary_interval = 100 # Every 100 steps
 
 total_epochs = 5000
 epoch_length = 1000
@@ -76,7 +93,7 @@ state_size = environment.observation_space.shape[0]
 sources_shape = [pre_steps, state_size]
 targets_shape = [post_steps, state_size]
 
-# Define the palceholder we use for feeding data into the queue
+# Define the placeholder we use for feeding data into the queue
 sources_placeholder = tf.placeholder(tf.float32, sources_shape, name="sources_placeholder")
 targets_placeholder = tf.placeholder(tf.float32, targets_shape, name="targets_placeholder")
 sources_length_placeholder = tf.placeholder(tf.int32, [], name="sources_length_placeholder")
@@ -89,6 +106,10 @@ experience = tf.RandomShuffleQueue(capacity=200*batch_size,
                                    shapes=[sources_shape, targets_shape, [], []],
                                    names=["sources", "targets", "sources_length", "targets_length"],
                                    name='experience_replay')
+
+# We want to track the queue length
+with tf.name_scope('shuffle_queue'):
+    tf.summary.scalar('length', experience.size())
 
 # Define the queue ops
 enqueue_op = experience.enqueue({
@@ -107,6 +128,7 @@ model = OracleNetwork(
     rnn_size=256,
     num_layers=3,
     num_features=state_size,
+    logs_path=logs_directory,
     sources_batch=deque_batch_op["sources"],
     targets_batch=deque_batch_op["targets"],
     sources_lengths=deque_batch_op["sources_length"],
@@ -147,24 +169,25 @@ with tf.Session() as sess:
 
         # Train for an epoch
         print("Training:")
-        progress = tqdm(range(epoch_length))
-        for _ in progress:
-            loss = model.train(sess=sess, learning_rate=learning_rate)
-            progress.set_postfix(loss=loss)
+        for i in tqdm(range(epoch_length)):
+            summarize = (i%summary_interval==0)
+            loss = model.train(sess=sess, learning_rate=learning_rate, summarize=summarize)
 
         # Evaluate on this dataset
         tloss, eloss = model.evaluate(sess=sess)
-        print('Evaluating Epoch {0}'.format(epoch))
-        print('Train Loss {1:.4f}, Eval Loss {2:.4f}'.format(epoch,tloss,eloss))
+        print('Epoch {0}: Train Loss {1:.4f}, Eval Loss {2:.4f}\n'.format(epoch,tloss,eloss))
 
         # Draw the result
-        sources_batch, targets_batch, outputs_batch = model.predict(sess=sess)
-        #draw(environment, sources_batch, targets_batch, outputs_batch)
+        # sources_batch, targets_batch, outputs_batch = model.predict(sess=sess)
+        # draw(environment, sources_batch, targets_batch, outputs_batch)
 
         # Save to a checkpoint
-        learning_rate = 0.95*learning_rate + 0.0001
-        print("New learning rate: %.5f"%learning_rate)
-
         if epoch%10==0:
-            model.save(sess, save_directory, save_name, epoch)
+            global_step = sess.run(model.global_step_op)
+            model.save(sess, save_directory, save_name, global_step)
+
+        # Reduce learning rate
+        if epoch%100==0:
+            learning_rate = 0.6*learning_rate
+            print("New learning rate: %.5f"%learning_rate)
 

@@ -1,4 +1,5 @@
 import time
+import pprint
 import random
 import threading
 import numpy as np
@@ -73,7 +74,7 @@ batch_size = 64
 pre_steps = 3  # Use the most recent three steps
 post_steps = 5 # Predict 5 steps into the future
 total_steps = pre_steps + post_steps
-learning_rate = 0.01
+learning_rate = 0.001
 logs_directory = 'results/logs'
 save_directory = 'results/collision'
 save_name = 'oracle'
@@ -139,7 +140,7 @@ coord = tf.train.Coordinator()
 init_op = tf.global_variables_initializer()
 
 with tf.Session() as sess:
-    sess.run(init_op)
+    #sess.run(init_op)
     model.restore(sess, save_directory, save_name)
 
     # Define a custom thread for running the enqueue op that grabs a new

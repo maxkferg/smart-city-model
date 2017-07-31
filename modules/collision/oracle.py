@@ -1,6 +1,7 @@
 import time
 import pprint
 import random
+import threading
 import multiprocessing
 import numpy as np
 import tensorflow as tf
@@ -82,7 +83,7 @@ summary_interval = 100 # Every 100 steps
 
 total_epochs = 5000
 epoch_length = 1000
-enqueue_threads = 4
+enqueue_threads = 12
 
 
 
@@ -136,8 +137,15 @@ model = OracleNetwork(
     targets_lengths=deque_batch_op["targets_length"]
 )
 
-coord = tf.train.Coordinator()
+
+
+
+
+
+
 init_op = tf.global_variables_initializer()
+coord = tf.train.Coordinator()
+queue = multiprocessing.Queue(maxsize=100*batch_size)
 
 with tf.Session() as sess:
     #sess.run(init_op)
@@ -146,30 +154,46 @@ with tf.Session() as sess:
     # Define a custom thread for running the enqueue op that grabs a new
     # screen in a loop and feeds it to the placeholder.
     # Each thread needs to fetch samples from its own environment to prevent race conditions
-    def enqueue_thread():
+    def enqueue_process(coordinator, queue):
         environment = LearningEnvironment()
         environment_buffer = HistoryBuffer(environment, total_steps, state_size)
+        with coordinator.stop_on_exception():
+            while not coordinator.should_stop():
+                state, reward = environment_buffer.fetch()
+                queue.put({
+                    'sources_placeholder': state[:pre_steps, :],
+                    'targets_placeholder': state[pre_steps:, :],
+                    'sources_length_placeholder': pre_steps,
+                    'targets_length_placeholder': post_steps
+                })
+
+    # Define a custom thread for running the enqueue op that grabs a new
+    # screen in a loop and feeds it to the placeholder.
+    # Each thread needs to fetch samples from its own environment to prevent race conditions
+    def enqueue_thread():
         with coord.stop_on_exception():
             while not coord.should_stop():
-                state, reward = environment_buffer.fetch()
-                # Feed in all the values the queue
+                data = queue.get()
                 sess.run(enqueue_op, feed_dict={
-                    sources_placeholder: state[:pre_steps, :],
-                    targets_placeholder: state[pre_steps:, :],
-                    sources_length_placeholder: pre_steps,
-                    targets_length_placeholder: post_steps
+                    sources_placeholder: data['sources_placeholder'],
+                    targets_placeholder: data['targets_placeholder'],
+                    sources_length_placeholder: data['sources_length_placeholder'],
+                    targets_length_placeholder: data['targets_length_placeholder']
                 })
 
     # Start queuing new samples
     for i in range(enqueue_threads):
         print("Starting enqueue operation %i"%i)
-        multiprocessing.Process(target=enqueue_thread).start()
+        multiprocessing.Process(target=enqueue_process, args=[coord, queue]).start()
+
+    # Start pulling from the queue
+    threading.Thread(target=enqueue_thread).start()
 
     # Run the main training loop
     for epoch in range(total_epochs):
 
         # Train for an epoch
-        print("Training:")
+        print("\nTraining:")
         for i in tqdm(range(epoch_length)):
             summarize = (i%summary_interval==0)
             loss = model.train(sess=sess, learning_rate=learning_rate, summarize=summarize)

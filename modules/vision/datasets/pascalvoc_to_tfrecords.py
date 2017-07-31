@@ -55,8 +55,8 @@ import tensorflow as tf
 
 import xml.etree.ElementTree as ET
 
-from datasets.dataset_utils import int64_feature, float_feature, bytes_feature
-from datasets.pascalvoc_common import VOC_LABELS
+from .dataset_utils import int64_feature, float_feature, bytes_feature
+from .pascalvoc_common import VOC_LABELS
 
 DIRECTORY_ANNOTATIONS = 'Annotations/'
 DIRECTORY_IMAGES = 'JPEGImages/'

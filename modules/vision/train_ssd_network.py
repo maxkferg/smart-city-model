@@ -534,9 +534,13 @@ def main(_):
             sync_optimizer=None,
             session_config=config)
 
-def train():
+
+def train(**flags):
     """Importable training wrapper"""
-    tf.app.run(main=main)
+    for key,value in flags.items():
+        FLAGS.__setattr__(key, value)
+    main(None)
+
 
 if __name__ == '__main__':
-    train()
+    tf.app.main()

@@ -26,9 +26,9 @@ python tf_convert_data.py \
 """
 import tensorflow as tf
 
-from datasets import pascalvoc_to_tfrecords
-from datasets import kitti_to_tfrecords
-from datasets import database_to_tfrecords
+from .datasets import pascalvoc_to_tfrecords
+from .datasets import kitti_to_tfrecords
+from .datasets import database_to_tfrecords
 
 
 FLAGS = tf.app.flags.FLAGS
@@ -61,6 +61,19 @@ def main(_):
         kitti_to_tfrecords.run(FLAGS.dataset_dir, FLAGS.output_dir, FLAGS.output_name)
     else:
         raise ValueError('Dataset [%s] was not recognized.' % FLAGS.dataset_name)
+
+
+def preprocess(dataset_name, dataset_dir, output_name, output_dir):
+    """
+    Expose the tf preprocessing app with a functional API
+    """
+    FLAGS.dataset_name = dataset_name
+    FLAGS.dataset_dir = dataset_dir
+    FLAGS.output_name = output_name
+    FLAGS.output_dir = output_dir
+    main(None)
+
+
 
 if __name__ == '__main__':
     tf.app.run()

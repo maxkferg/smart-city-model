@@ -54,7 +54,7 @@ import tensorflow as tf
 
 from modules.storage.models import VideoModel, FrameModel
 from moviepy.editor import VideoFileClip
-from datasets.dataset_utils import int64_feature, float_feature, bytes_feature
+from .dataset_utils import int64_feature, float_feature, bytes_feature
 
 
 def convert_to_example(image_data, shape, labels, labels_text, truncated, occluded,

@@ -53,8 +53,8 @@ import random
 import numpy as np
 import tensorflow as tf
 
-from datasets.dataset_utils import int64_feature, float_feature, bytes_feature
-from datasets.kitti_common import KITTI_LABELS
+from .dataset_utils import int64_feature, float_feature, bytes_feature
+from .kitti_common import KITTI_LABELS
 
 DEFAULT_IMAGE_DIR = 'image_2/'
 DEFAULT_LABEL_DIR = 'label_2/'

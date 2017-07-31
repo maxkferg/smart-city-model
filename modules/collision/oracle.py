@@ -1,7 +1,7 @@
 import time
 import pprint
 import random
-import threading
+import multiprocessing
 import numpy as np
 import tensorflow as tf
 from ddpg import DDPG
@@ -163,7 +163,7 @@ with tf.Session() as sess:
     # Start queuing new samples
     for i in range(enqueue_threads):
         print("Starting enqueue operation %i"%i)
-        threading.Thread(target=enqueue_thread).start()
+        multiprocessing.Process(target=enqueue_thread).start()
 
     # Run the main training loop
     for epoch in range(total_epochs):

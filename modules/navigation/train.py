@@ -7,6 +7,7 @@ from environment import LearningEnvironment
 PATH = 'results/ddpg'
 EPOCHS = 1000
 EPISODES = 100
+RENDER = False
 
 
 def train(env, agent, epsilon):
@@ -42,7 +43,8 @@ def test(env, agent, render=False):
 if __name__=='__main__':
     # Setup
     epsilon = 1
-    env = LearningEnvironment(num_particles=1, disable_render=False)
+    disabled = not RENDER
+    env = LearningEnvironment(num_particles=1, disable_render=disabled)
     agent = DDPG(env)
     agent.restore_model(PATH)
 
@@ -62,7 +64,7 @@ if __name__=='__main__':
         print("Train Reward {0}, Test Reward {1}".format(train_reward, test_reward))
 
         # Render
-        test(env, agent, render=True)
+        test(env, agent, render=RENDER)
 
         # Save model
         agent.save_model(PATH,episode)

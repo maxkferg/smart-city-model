@@ -4,8 +4,8 @@ import cv2 as cv
 import numpy as np
 from moviepy.editor import VideoFileClip
 from modules.storage.models import VideoModel,FrameModel
-from modules.ssd.main import ImageNetwork as SSD
-from modules.ssd.helpers import bboxes_as_pixels, bboxes_draw_on_img, colors_tableau
+from modules.vision.main import ImageNetwork as SSD
+from modules.vision.helpers import bboxes_as_pixels, bboxes_draw_on_img, colors_tableau
 from modules.camera.birdseye import BirdseyeView
 
 
@@ -123,9 +123,12 @@ class VideoProcessor:
 
 
 if __name__ == "__main__":
-    with SSD(select_threshold=0.65, nms_threshold=0.6) as ssd:
+    with SSD(select_threshold=0.70, nms_threshold=0.30) as ssd:
         processor = VideoProcessor(ssd)
-        for item in VideoModel.scan(camera__eq='alabama'):
+        video_id = '1500328203' # labelled data
+        #video_id = '1500327953'
+        #for item in VideoModel.scan(camera__eq='alabama'):
+        for item in VideoModel.query(hash_key=video_id):
             print("Processing",item)
             processor.process_video(item)
 

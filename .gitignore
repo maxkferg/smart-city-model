@@ -12,7 +12,9 @@ test/data/*
 test/frames/*
 videos/*
 modules/vision/logs/
+modules/vision/checkpoints/
 modules/collision/models/
 modules/vision/checkpoints/ssd_300_vgg.ckpt.zip
 modules/collision/results/q5_train_atari_nature
 modules/collision/results/collision/
+modules/navigation/results/

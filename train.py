@@ -59,6 +59,11 @@ python3 tf_convert_data.py \
 --output_name=database_train \
 --output_dir=/Users/maxferguson/Data/database
 
+# =========================================================================== #
+# Copying checkpoints
+# =========================================================================== #
+
+scp -r ubuntu@35.197.105.165:~/smart-city-model/modules/vision/checkpoints/* .
 
 # =========================================================================== #
 # Database training

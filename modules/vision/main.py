@@ -22,7 +22,7 @@ slim = tf.contrib.slim
 # Build up the convolutional network and load the checkpoint.
 img_input = tf.placeholder(tf.uint8, shape=(None, None, 3))
 image_pre, labels_pre, bboxes_pre, bbox_img = ssd_vgg_preprocessing.preprocess_for_eval(
-    img_input, None, None, (None, None), resize=ssd_vgg_preprocessing.Resize.NONE)
+    img_input, None, None, (300, 300), resize=ssd_vgg_preprocessing.Resize.NONE)
 image_4d = tf.expand_dims(image_pre, 0)
 
 # Network parameters.

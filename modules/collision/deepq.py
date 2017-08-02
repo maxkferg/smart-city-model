@@ -4,33 +4,33 @@ from dqn.configs.nature import config
 from environment import LearningEnvironment
 
 
-"""
-Use deep Q network for the Atari game. Please report the final result.
-Feel free to change the configurations (in the configs/ folder).
-If so, please report your hyperparameters.
+if __name__=='__main__':
+    # Setup
+    env = LearningEnvironment(num_particles=1,disable_render=False)
+    agent = DDPG(env)
+    agent.restore_model(PATH)
 
-You'll find the results, log and video recordings of your agent every 250k under
-the corresponding file in the results folder. A good way to monitor the progress
-of the training is to use Tensorboard. The starter code writes summaries of different
-variables.
+    # Train
+    for episode in range(EPISODES):
+        done = False
+        state = env.reset()
+        rewardEpisode = []
+        shouldRender = (episode%10==0)
 
-To launch tensorboard, open a Terminal window and run
-tensorboard --logdir=results/
-Then, connect remotely to
-address-ip-of-the-server:6006
-6006 is the default port used by tensorboard.
-"""
-if __name__ == '__main__':
-    # make env
-    env = LearningEnvironment(skip=config.skip_frame)
+        for i in tqdm(range(env.max_steps)):
+            action = agent.noise_action(state)
+            next_state, reward, done, info = env.step(action)
+            if shouldRender:
+                env.render()
+            else:
+                agent.perceive(state,action,reward,next_state,done)
+            # Setup for next cycle
+            state = next_state
+            rewardEpisode.append(reward)
+            averageReward = np.mean(rewardEpisode)
 
-    # exploration strategy
-    exp_schedule = LinearExploration(env, config.eps_begin, config.eps_end, config.eps_nsteps)
+        # Save model
+        if episode%100==1:
+            agent.save_model(PATH,episode)
 
-    # learning rate schedule
-    lr_schedule  = LinearSchedule(config.lr_begin, config.lr_end, config.lr_nsteps)
-
-    # train model
-    model = NatureQN(env, config)
-    model.restore(config.model_output)
-    model.run(exp_schedule, lr_schedule)
+        print("Episode {0}, Reward {1}".format(episode,averageReward))

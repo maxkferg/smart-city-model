@@ -4,7 +4,6 @@
 # Date: 2016.5.4
 # -----------------------------------
 import os
-import gym
 import random
 import tensorflow as tf
 import numpy as np

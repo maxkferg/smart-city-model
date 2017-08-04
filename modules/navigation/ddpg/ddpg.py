@@ -16,13 +16,13 @@ from .replay_buffer import ReplayBuffer
 REPLAY_BUFFER_SIZE = 1000000
 REPLAY_START_SIZE = 10000
 BATCH_SIZE = 64
-GAMMA = 0.8
+GAMMA = 0.97
 
 
 class DDPG:
     """docstring for DDPG"""
 
-    def __init__(self, env):
+    def __init__(self, env, writer):
         self.name = 'DDPG' # name for uploading results
         self.environment = env
         # Randomly initialize actor network and critic network
@@ -32,8 +32,8 @@ class DDPG:
 
         self.sess = tf.InteractiveSession()
 
-        self.actor_network = ActorNetwork(self.sess, self.state_dim, self.action_dim)
-        self.critic_network = CriticNetwork(self.sess, self.state_dim, self.action_dim)
+        self.actor_network = ActorNetwork(self.sess, writer, self.state_dim, self.action_dim)
+        self.critic_network = CriticNetwork(self.sess, writer, self.state_dim, self.action_dim)
 
         # initialize replay buffer
         self.replay_buffer = ReplayBuffer(REPLAY_BUFFER_SIZE)
@@ -42,6 +42,7 @@ class DDPG:
         self.exploration_noise = OUNoise(self.action_dim)
 
         self.saver = tf.train.Saver()
+
 
 
     def train(self):
@@ -69,7 +70,7 @@ class DDPG:
         y_batch = np.resize(y_batch,[BATCH_SIZE,1])
 
         # Update critic by minimizing the loss L
-        self.critic_network.train(y_batch,state_batch,action_batch)
+        self.critic_network.train(y_batch, state_batch, action_batch)
 
         # Update the actor policy using the sampled gradient:
         action_batch_for_gradients = self.actor_network.actions(state_batch)
@@ -80,6 +81,7 @@ class DDPG:
         # Update the target networks
         self.actor_network.update_target()
         self.critic_network.update_target()
+
 
 
     def save_model(self, path, episode):
@@ -101,10 +103,12 @@ class DDPG:
         # Select the default environment policy with probability epsilon
         # Select action a_t according to the current policy and exploration noise
         if random.random()<epsilon:
-            return self.environment.get_default_action()
+            action = self.environment.get_default_action()
         else:
             action = self.actor_network.action(state)
-            return action + self.exploration_noise.noise()
+            action = action + self.exploration_noise.noise()
+        # Clip action to ensure it NEVER exceeds the range of tanh
+        return np.clip(action,-1,1)
 
 
     def action(self,state):

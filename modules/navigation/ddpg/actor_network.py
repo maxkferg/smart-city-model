@@ -4,17 +4,19 @@ import math
 
 
 # Hyper Parameters
-LAYER1_SIZE = 400
-LAYER2_SIZE = 300
+LAYER1_SIZE = 300
+LAYER2_SIZE = 400
+LAYER3_SIZE = 300
 LEARNING_RATE = 1e-4
 TAU = 0.001
 BATCH_SIZE = 64
 
 class ActorNetwork:
     """docstring for ActorNetwork"""
-    def __init__(self,sess,state_dim,action_dim):
+    def __init__(self,sess,writer,state_dim,action_dim):
 
         self.sess = sess
+        self.writer = writer
         self.state_dim = state_dim
         self.action_dim = action_dim
 
@@ -27,7 +29,7 @@ class ActorNetwork:
         # define training rules
         self.create_training_method()
 
-        self.sess.run(tf.initialize_all_variables())
+        self.sess.run(tf.global_variables_initializer())
 
         self.update_target()
         #self.load_network()
@@ -40,6 +42,7 @@ class ActorNetwork:
     def create_network(self,state_dim,action_dim):
         layer1_size = LAYER1_SIZE
         layer2_size = LAYER2_SIZE
+        layer3_size = LAYER3_SIZE
 
         state_input = tf.placeholder("float",[None,state_dim])
 
@@ -47,14 +50,17 @@ class ActorNetwork:
         b1 = self.variable([layer1_size],state_dim)
         W2 = self.variable([layer1_size,layer2_size],layer1_size)
         b2 = self.variable([layer2_size],layer1_size)
-        W3 = tf.Variable(tf.random_uniform([layer2_size,action_dim],-3e-3,3e-3))
-        b3 = tf.Variable(tf.random_uniform([action_dim],-3e-3,3e-3))
+        W3 = self.variable([layer2_size,layer3_size],layer2_size)
+        b3 = self.variable([layer3_size],layer1_size)
+        W4 = tf.Variable(tf.random_uniform([layer3_size,action_dim],-3e-3,3e-3))
+        b4 = tf.Variable(tf.random_uniform([action_dim],-3e-3,3e-3))
 
         layer1 = tf.nn.relu(tf.matmul(state_input,W1) + b1)
         layer2 = tf.nn.relu(tf.matmul(layer1,W2) + b2)
-        action_output = tf.tanh(tf.matmul(layer2,W3) + b3)
+        layer3 = tf.nn.relu(tf.matmul(layer2,W3) + b3)
+        action_output = tf.tanh(tf.matmul(layer3,W4) + b4)
 
-        return state_input,action_output,[W1,b1,W2,b2,W3,b3]
+        return state_input,action_output,[W1,b1,W2,b2,W3,b3,W4,b4]
 
     def create_target_network(self,state_dim,action_dim,net):
         state_input = tf.placeholder("float",[None,state_dim])
@@ -64,7 +70,8 @@ class ActorNetwork:
 
         layer1 = tf.nn.relu(tf.matmul(state_input,target_net[0]) + target_net[1])
         layer2 = tf.nn.relu(tf.matmul(layer1,target_net[2]) + target_net[3])
-        action_output = tf.tanh(tf.matmul(layer2,target_net[4]) + target_net[5])
+        layer3 = tf.nn.relu(tf.matmul(layer2,target_net[4]) + target_net[5])
+        action_output = tf.tanh(tf.matmul(layer3,target_net[6]) + target_net[7])
 
         return state_input,action_output,target_update,target_net
 

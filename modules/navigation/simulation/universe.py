@@ -20,7 +20,7 @@ class Universe:
 
         self.colour = (255,255,255)
         self.mass_of_air = 0.2
-        self.elasticity = 0.75
+        self.elasticity = 0.2
         self.acceleration = (0,0)
 
         self.particle_functions1 = []
@@ -54,11 +54,12 @@ class Universe:
         name = kargs.get('name', 'default')
         size = kargs.get('radius', random.randint(10, 20))
         mass = kargs.get('mass', random.randint(100, 10000))
+        drag = kargs.get('drag', random.random())
         target = kargs.get('target', None)
         x = kargs.get('x', random.uniform(size, self.width - size))
         y = kargs.get('y', random.uniform(size, self.height - size))
 
-        particle = Particle((x, y), size, mass, target, name=name)
+        particle = Particle((x, y), size, target=target, mass=mass, name=name)
         particle.speed = kargs.get('speed', 100*random.random())
         particle.angle = kargs.get('angle', random.uniform(0, math.pi*2))
         particle.colour = kargs.get('color', (0,0,0))

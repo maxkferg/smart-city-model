@@ -19,22 +19,20 @@ def combine(p1, p2):
 class Particle:
     """ A circular object with a velocity, size and mass """
 
-    def __init__(self, position, size, mass=1, target=None, name="default"):
+    def __init__(self, position, size, target=None, mass=1, elasticity=0.8, speed=0, name="default"):
         (x, y) = position
         self.x = x
         self.y = y
         self.size = size
         self.colour = (0, 0, 255)
         self.thickness = 0
-        self.speed = 0
         self.angle = 0
+        self.speed = speed
         self.mass = mass
-        self.drag = 1 # Things slow down without drag
-        self.elasticity = 0.9
+        self.elasticity = elasticity
         self.target = target
         self.noise = np.array([0,0])
         self.name = name
-
 
     def move(self):
         """ Update position based on speed, angle """
@@ -47,11 +45,23 @@ class Particle:
         dy = abs(self.y - self.target.y)
         return (dx**2 + dy**2 < threshold**2)
 
-
-    def getSpeedVector(self):
+    def get_speed_vector(self):
         """Return the speed vector in cartesion coordinates"""
         dx, dy = pol2cart(self.angle, self.speed)
         return dx, dy
+
+
+    def get_state_vector(self,w,h):
+        """Return a normalized version of this objects state vector"""
+        dx, dy = self.get_speed_vector()
+        return (
+            self.x / w,
+            self.y / h,
+            dx / 40, # Normalize speed to 0-1 range
+            dy / 40, # Normalize speed to 0-1 range
+            self.target.x / w,
+            self.target.y / h
+        )
 
     def experienceDrag(self):
         self.speed *= self.drag
@@ -69,14 +79,14 @@ class Particle:
 
     def brownian(self):
         """Add some correlated acceleration"""
+        pass
         #change = np.random.uniform(-1,1,size=2)
         #vector = 0.5*self.noise + 1.0*change + 0.6*self.speed
         #vector = pol2cart(self.angle, 0.003*self.speed) # Antidrag
         #polar = cart2pol(vector[0],vector[1])
         #self.accelerate(polar)
         #self.noise = vector / np.linalg.norm(vector)
-        if self.name!="primary":
-            self.speed = 10
+
 
     def attract(self, other):
         """" Change velocity based on gravatational attraction between two particle"""
@@ -93,7 +103,7 @@ class Particle:
         self.accelerate((theta - 0.5 * math.pi, force/self.mass))
         other.accelerate((theta + 0.5 * math.pi, force/other.mass))
 
-    def respawn(self,width,height):
+    def respawn(self,width,height,speed=0):
         """Respawn this particle somewhere else"""
         x = random.uniform(0,width)
         y = random.uniform(0,height)
@@ -103,4 +113,4 @@ class Particle:
             y = random.choice([0,height])
         self.x = x
         self.y = y
-
+        self.speed = speed

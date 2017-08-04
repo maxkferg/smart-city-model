@@ -5,6 +5,7 @@ import random
 import pygame
 import pygame.gfxdraw
 import numpy as np
+from pygame import pixelcopy
 from keras.models import Sequential
 from keras.layers import Input, LSTM, Dense
 from sklearn import preprocessing
@@ -33,12 +34,14 @@ class LearningEnvironment:
     Environment that an algorithm can play with
     """
     action_dimensions = 2
-    state_dimensions = 6 # The number of state dimensions (x,y,angle,speed,tx,ty)
-    max_steps = 100
+    state_dimensions = 6 # The number of dimensions per particle (x,y,dx,dy,tx,ty)
+    max_steps = 400
 
     screen = None
+    particle_speed = 20
     screen_width = 800
     screen_height = 800
+    background = None
 
 
     def __init__(self, num_particles=4, particle_size=30, disable_render=False):
@@ -52,15 +55,16 @@ class LearningEnvironment:
 
         self.universe = Universe((self.screen_width, self.screen_height))
         self.universe.addFunctions(['move', 'bounce', 'brownian', 'collide', 'drag'])
-        self.universe.mass_of_air = 0.002
+        self.universe.mass_of_air = 0.001
 
         # Add all the particles
         colors = sns.color_palette("muted")
         for i in range(self.num_particles):
             name = "primary" if i==0 else "default"
+            speed = 0 if i==0 else self.particle_speed
             color = tuple(255*c for c in colors[i])
-            target = self.universe.addTarget(radius=particle_size, color=color)
-            particle = self.universe.addParticle(radius=particle_size, mass=100, speed=0, elasticity=1, color=color, target=target, name=name)
+            target = self.universe.addTarget(radius=particle_size, color=(255,255,255))
+            particle = self.universe.addParticle(radius=particle_size, mass=100, speed=speed, elasticity=0.5, color=color, target=target, name=name)
 
         # Add the primary particle
         self.primary = self.universe.particles[0]
@@ -71,7 +75,22 @@ class LearningEnvironment:
             pygame.display.set_caption('Bouncing Objects')
 
 
-    def step(self, action):
+    def step(self, action, n):
+        """
+        Step forward n steps
+        """
+        rewards = 0
+        for i in range(n):
+            self.render()
+            state, reward, done, info = self._step(action)
+            rewards += reward
+            if done:
+                break
+        self.render()
+        return state, rewards, done, info
+
+
+    def _step(self, action):
         """
         Step the environment forward
         Return (observation, reward, done, info)
@@ -88,9 +107,15 @@ class LearningEnvironment:
         if self.primary.atTarget(threshold=50):
             reward = 1
             done = True
+        elif collisions > 0:
+            reward = -1/self.num_particles
+            done = True
         else:
             reward = 0
-            done = self.current_step >= self.max_steps or collisions > 0
+            done = self.current_step >= self.max_steps
+
+        excess = np.maximum(abs(action)-0.9, 0)
+        reward -= np.sum(excess)
 
         info = {'step': self.current_step}
         return state, reward, done, info
@@ -99,10 +124,12 @@ class LearningEnvironment:
     def reset(self):
         """Respawn the particles and the targets"""
         for particle in self.universe.particles:
-            particle.respawn(self.screen_width, self.screen_height)
+            particle.respawn(self.screen_width, self.screen_height, speed=self.particle_speed)
 
         for target in self.universe.targets:
             target.respawn(self.screen_width, self.screen_height)
+
+        self.primary.speed = 0
 
         self.current_step = 0
 
@@ -114,18 +141,25 @@ class LearningEnvironment:
         Render the environment
         """
         # Clear the screen
-        self.screen.fill(self.universe.colour)
+        if self.background is not None:
+            pixelcopy.array_to_surface(self.screen, self.background)
+        else:
+            self.screen.fill(self.universe.colour)
 
+        # Draw particles
         for p in self.universe.particles:
-            self.draw_circle(int(p.x), int(p.y), p.size, p.colour, filled=True)
+            edge = np.maximum(p.colour, (200,200,200))
+            self.draw_circle(int(p.x), int(p.y), p.size, p.colour, edgeColor=edge, filled=True)
 
-        for t in self.universe.targets:
-            self.draw_circle(int(t.x), int(t.y), t.radius, t.color, filled=False)
-            self.draw_circle(int(t.x), int(t.y), int(t.radius/4), t.color, filled=True)
+        # Draw primart target
+        #for t in self.universe.targets:
+        t = self.primary.target
+        self.draw_circle(int(t.x), int(t.y), t.radius, t.color, filled=False)
+        self.draw_circle(int(t.x), int(t.y), int(t.radius/4), t.color, filled=True)
 
         # Draw the primary particle direction
         p = self.primary
-        dx, dy = p.getSpeedVector()
+        dx, dy = p.get_speed_vector()
         pygame.gfxdraw.line(self.screen, int(p.x), int(p.y), int(p.x+10*dx), int(p.y+10*dy), (0,0,0))
         self.flip_screen()
         time.sleep(0.01)
@@ -159,11 +193,12 @@ class LearningEnvironment:
         return img
 
 
-    def draw_circle(self, x, y, r, color, filled=False):
+    def draw_circle(self, x, y, r, color, edgeColor=None, filled=False):
         """Draw circle on the screen"""
+        edgeColor = color if edgeColor is None else edgeColor
         if filled:
             pygame.gfxdraw.filled_circle(self.screen, int(x), int(y), r, color)
-        pygame.gfxdraw.aacircle(self.screen, int(x), int(y), r, color)
+        pygame.gfxdraw.aacircle(self.screen, int(x), int(y), r, edgeColor)
 
 
     def get_default_action(self):
@@ -182,13 +217,7 @@ class LearningEnvironment:
         """
         state = []
         for i,particle in enumerate(self.universe.particles):
-            x = particle.x / self.universe.width
-            y = particle.y / self.universe.height
-            a = particle.angle / (2 * math.pi)
-            v = particle.speed / 10
-            tx = particle.target.x / self.universe.width
-            ty = particle.target.y / self.universe.height
-            state.extend((x, y, a, v, tx, ty))
+            state.extend(particle.get_state_vector(self.screen_width, self.screen_height))
         return np.array(state)
 
 

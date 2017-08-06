@@ -63,7 +63,7 @@ class LearningEnvironment:
             name = "primary" if i==0 else "default"
             speed = 0 if i==0 else self.particle_speed
             color = tuple(255*c for c in colors[i])
-            target = self.universe.addTarget(radius=particle_size, color=(255,255,255))
+            target = self.universe.addTarget(radius=particle_size, color=(0,255,255))
             particle = self.universe.addParticle(radius=particle_size, mass=100, speed=speed, elasticity=0.5, color=color, target=target, name=name)
 
         # Add the primary particle
@@ -81,12 +81,10 @@ class LearningEnvironment:
         """
         rewards = 0
         for i in range(n):
-            self.render()
             state, reward, done, info = self._step(action)
             rewards += reward
             if done:
                 break
-        self.render()
         return state, rewards, done, info
 
 
@@ -97,14 +95,14 @@ class LearningEnvironment:
         """
         # Particle 1 is being controlled
         angle, accel = cart2pol(-action[1],action[0])
-        self.primary.accelerate((angle, accel))
+        self.primary.accelerate((angle, 2*accel))
 
         # Step forward one timestep
         collisions = self.universe.update()
         state = self.get_current_state()
         self.current_step += 1
 
-        if self.primary.atTarget(threshold=50):
+        if self.primary.atTarget(threshold=40):
             reward = 1
             done = True
         elif collisions > 0:
@@ -232,12 +230,6 @@ class HumanLearningEnvironment(LearningEnvironment):
     Overide base class to allow human control
     """
 
-    def step(self,action):
-        """ Override step to insert action"""
-        action = self.control_loop()
-        return super().step(action)
-
-
     def control_loop(self):
         """
         Return a user selected action
@@ -251,29 +243,33 @@ class HumanLearningEnvironment(LearningEnvironment):
                     sys.exit()
                 if event.type == pygame.KEYDOWN:
                     if event.key == pygame.K_w:
-                        action = 0
+                        action = [0, -0.3]
                     if event.key == pygame.K_d:
-                        action = 1
+                        action = [0.3, 0]
                     if event.key == pygame.K_s:
-                        action = 2
+                        action = [0, 0.3]
                     if event.key == pygame.K_a:
-                        action = 3
-        return action
+                        action = [-0.3, 0]
+        return np.array(action)
 
 
 if __name__=="__main__":
     # Demo the environment
-    env = HumanLearningEnvironment(num_particles=4, render=True)
-    rewards = 0
-    done = False
-    while not done:
+    total_rewards = []
+    while True:
+        env = HumanLearningEnvironment(num_particles=4, disable_render=False)
+        rewards = 0
+        done = False
+        while not done:
+            env.render()
+            action = env.control_loop()
+            observation, reward, done, info = env.step(action, n=4)
+            rewards += reward
+            if done:
+                total_rewards.append(rewards)
+                print("Simulation complete. Reward: ",rewards)
+                print("Average reward so far: ",np.average(total_rewards))
         env.render()
-        action = env.action_space.sample()
-        observation, reward, done, info = env.step(action)
-        rewards += reward
-        if done:
-            print("Simulation complete. Reward: ",reward)
-    env.render()
 
 
 

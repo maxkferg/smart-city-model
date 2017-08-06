@@ -70,7 +70,7 @@ def get_q_background(env, agent, action):
     """
     Return a q background image
     """
-    q = get_q(env, agent, action, n=400)
+    q = get_q(env, agent, action, n=100)
     q = map_to_colors(q)
     q = scale_image(q)
     return q

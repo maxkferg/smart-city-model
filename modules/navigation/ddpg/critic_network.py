@@ -1,15 +1,13 @@
-
-import tensorflow as tf
-import numpy as np
 import math
+import numpy as np
+import tensorflow as tf
 
-
-LAYER1_SIZE = 300
+LAYER1_SIZE = 500
 LAYER2_SIZE = 400
 LAYER3_SIZE = 300
-LEARNING_RATE = 1e-3
+LEARNING_RATE = 1e-4
 TAU = 0.001
-L2 = 0.00001
+L2 = 0.00005
 
 class CriticNetwork:
     """docstring for CriticNetwork"""

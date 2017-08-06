@@ -16,7 +16,7 @@ from .replay_buffer import ReplayBuffer
 REPLAY_BUFFER_SIZE = 1000000
 REPLAY_START_SIZE = 10000
 BATCH_SIZE = 64
-GAMMA = 0.97
+GAMMA = 0.98
 
 
 class DDPG:
@@ -83,7 +83,6 @@ class DDPG:
         self.critic_network.update_target()
 
 
-
     def save_model(self, path, episode):
         filename = os.path.join(path,"model.ckpt")
         self.saver.save(self.sess, filename, episode)
@@ -106,7 +105,7 @@ class DDPG:
             action = self.environment.get_default_action()
         else:
             action = self.actor_network.action(state)
-            action = action + self.exploration_noise.noise()
+            action = action + self.exploration_noise.noise() * epsilon
         # Clip action to ensure it NEVER exceeds the range of tanh
         return np.clip(action,-1,1)
 
